@@ -1,0 +1,74 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import csv
+import datetime
+
+attendance = {}  # {name: [status_list]}
+dates = []
+
+def add_student():
+    name = name_entry.get().strip()
+    if name and name not in attendance:
+        attendance[name] = []
+        refresh_table()
+        name_entry.delete(0, tk.END)
+    else:
+        messagebox.showwarning("Error", "Empty or duplicate name.")
+
+def mark_attendance(status):
+    selected = tree.selection()
+    if not selected:
+        messagebox.showwarning("Error", "Select a student.")
+        return
+    name = tree.item(selected[0], "values")[0]
+    today = datetime.date.today().strftime("%d/%m")
+    if today not in dates:
+        dates.append(today)
+    attendance[name].append(status)
+    refresh_table()
+
+def refresh_table():
+    for row in tree.get_children():
+        tree.delete(row)
+    for name, records in attendance.items():
+        present = records.count("P")
+        absent = records.count("A")
+        tree.insert("", tk.END, values=(name, present, absent, f"{len(records)} days"))
+
+def export_csv():
+    with open("attendance.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["Name", "Present", "Absent", "Total"])
+        for name, records in attendance.items():
+            w.writerow([name, records.count("P"), records.count("A"), len(records)])
+    messagebox.showinfo("Exported", "Saved as attendance.csv")
+
+root = tk.Tk()
+root.title("Attendance Management System")
+root.geometry("540x460")
+root.config(bg="#e8eaf6")
+
+tk.Label(root, text="Attendance Management", font=("Arial", 15, "bold"), bg="#e8eaf6", fg="#1a237e").pack(pady=8)
+
+f1 = tk.Frame(root, bg="#e8eaf6")
+f1.pack()
+
+tk.Label(f1, text="Student Name:", bg="#e8eaf6").pack(side=tk.LEFT)
+name_entry = tk.Entry(f1, width=22, font=("Arial", 11))
+name_entry.pack(side=tk.LEFT, padx=4)
+tk.Button(f1, text="Add Student", command=add_student, bg="#3949ab", fg="white").pack(side=tk.LEFT)
+
+cols = ("Name", "Present", "Absent", "Total Days")
+tree = ttk.Treeview(root, columns=cols, show="headings", height=12)
+for c in cols:
+    tree.heading(c, text=c)
+    tree.column(c, width=115, anchor=tk.CENTER)
+tree.pack(pady=10, padx=10)
+
+f2 = tk.Frame(root, bg="#e8eaf6")
+f2.pack()
+tk.Button(f2, text="Mark Present", command=lambda: mark_attendance("P"), bg="#2e7d32", fg="white", width=14).pack(side=tk.LEFT, padx=4)
+tk.Button(f2, text="Mark Absent", command=lambda: mark_attendance("A"), bg="#c62828", fg="white", width=14).pack(side=tk.LEFT, padx=4)
+tk.Button(f2, text="Export CSV", command=export_csv, bg="#f57f17", fg="white", width=14).pack(side=tk.LEFT, padx=4)
+
+root.mainloop()
